@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+
+const int N = 2;
+typedef int[0, N-1] id_t;
+
+// private channel between aircraft and pilot
+chan advise_pilot[N];
+chan back_to_safe[N];
+
+// communication channel between resolution and channel
+chan send_signal[N];
+chan receive_signal[N];
+
+broadcast chan enter_danger;
+broadcast chan declare;
+broadcast chan undeclare;
+
+
+bool in_danger[N] = {false, false};
+
+
+bool signal_sent[N] = {false, false};
+</declaration>
+	<template>
+		<name>Environment</name>
+		<location id="id0" x="-365" y="17">
+			<name x="-375" y="-17">Idle</name>
+		</location>
+		<location id="id1" x="85" y="17">
+			<name x="75" y="-17">RA_zone</name>
+		</location>
+		<init ref="id0"/>
+		<transition id="id2">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-187" y="110">undeclare?</label>
+			<nail x="-144" y="102"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-204" y="-102">enter_danger!</label>
+			<nail x="-144" y="-68"/>
+		</transition>
+	</template>
+	<template>
+		<name>Aircraft</name>
+		<parameter>const id_t id</parameter>
+		<declaration>clock t;</declaration>
+		<location id="id4" x="-144" y="-25">
+			<name x="-154" y="-59">Safe</name>
+		</location>
+		<location id="id5" x="110" y="-25">
+			<name x="100" y="-59">Danger</name>
+		</location>
+		<init ref="id4"/>
+		<transition id="id6">
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-85" y="-136">back_to_safe[id]?</label>
+			<label kind="assignment" x="-102" y="-110">in_danger[id] = false</label>
+			<nail x="-25" y="-85"/>
+		</transition>
+		<transition id="id7">
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-76" y="68">enter_danger?</label>
+			<label kind="assignment" x="-136" y="42">in_danger[id] = true, t = 0</label>
+			<nail x="-25" y="42"/>
+		</transition>
+	</template>
+	<template>
+		<name>Sensor_Detection</name>
+		<declaration>clock t;</declaration>
+		<location id="id8" x="-1350" y="-680">
+			<name x="-1385" y="-714">Idle</name>
+		</location>
+		<location id="id9" x="-561" y="-688">
+			<name x="-571" y="-722">Danger</name>
+		</location>
+		<location id="id10" x="-1028" y="-714">
+			<name x="-1038" y="-748">Detecting</name>
+			<label kind="invariant" x="-1038" y="-697">t &lt;= 60</label>
+		</location>
+		<init ref="id8"/>
+		<transition id="id11">
+			<source ref="id10"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-1385" y="-850">in_danger[0] == false &amp;&amp; in_danger[1] == false</label>
+			<nail x="-1198" y="-824"/>
+		</transition>
+		<transition id="id12">
+			<source ref="id8"/>
+			<target ref="id10"/>
+			<label kind="synchronisation" x="-1224" y="-646">enter_danger?</label>
+			<label kind="assignment" x="-1181" y="-578">t = 0</label>
+			<nail x="-1164" y="-586"/>
+		</transition>
+		<transition id="id13">
+			<source ref="id9"/>
+			<target ref="id10"/>
+			<label kind="guard" x="-994" y="-884">in_danger[0] == false &amp;&amp; in_danger[1] == false</label>
+			<label kind="synchronisation" x="-849" y="-841">undeclare!</label>
+			<label kind="assignment" x="-833" y="-816">t = 0</label>
+			<nail x="-815" y="-858"/>
+			<nail x="-977" y="-748"/>
+			<nail x="-977" y="-748"/>
+		</transition>
+		<transition id="id14">
+			<source ref="id10"/>
+			<target ref="id9"/>
+			<label kind="guard" x="-986" y="-594">in_danger[0] == true || in_danger[1] == true</label>
+			<label kind="synchronisation" x="-833" y="-637">declare!</label>
+			<nail x="-935" y="-671"/>
+			<nail x="-935" y="-671"/>
+			<nail x="-807" y="-594"/>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">Resolution</name>
+		<parameter>const id_t id</parameter>
+		<declaration>// Place local declarations here.
+clock x, y;
+typedef int[1, 10] rand_t;
+</declaration>
+		<location id="id15" x="85" y="43">
+			<name x="75" y="9">Idle</name>
+		</location>
+		<location id="id16" x="25" y="221">
+			<name x="-85" y="212">Calculation</name>
+			<label kind="invariant" x="-17" y="187">y&lt;=5</label>
+		</location>
+		<location id="id17" x="569" y="187">
+			<name x="559" y="153">Consistent</name>
+		</location>
+		<location id="id18" x="255" y="357">
+			<name x="245" y="323">Comparison</name>
+			<committed/>
+		</location>
+		<location id="id19" x="255" y="263">
+			<name x="263" y="238">Cal_finished</name>
+		</location>
+		<init ref="id15"/>
+		<transition id="id20">
+			<source ref="id16"/>
+			<target ref="id19"/>
+			<label kind="guard" x="110" y="238">y&gt;=1</label>
+			<label kind="synchronisation" x="85" y="221">send_signal[id]!</label>
+		</transition>
+		<transition id="id21">
+			<source ref="id19"/>
+			<target ref="id18"/>
+			<label kind="synchronisation" x="127" y="297">receive_signal[id]?</label>
+		</transition>
+		<transition id="id22">
+			<source ref="id17"/>
+			<target ref="id15"/>
+			<label kind="synchronisation" x="195" y="102">undeclare?</label>
+			<label kind="assignment" x="314" y="68">in_danger[id] = false</label>
+		</transition>
+		<transition id="id23">
+			<source ref="id18"/>
+			<target ref="id16"/>
+			<label kind="select" x="-17" y="357">r : rand_t</label>
+			<label kind="guard" x="25" y="391">r&gt;8 &amp;&amp; x&lt;30</label>
+			<label kind="assignment" x="119" y="374">y=0</label>
+			<label kind="comments" x="-119" y="425">Unconsistency: return to calculation</label>
+			<nail x="102" y="374"/>
+			<nail x="-67" y="400"/>
+			<nail x="-67" y="400"/>
+		</transition>
+		<transition id="id24">
+			<source ref="id18"/>
+			<target ref="id17"/>
+			<label kind="select" x="382" y="289">r : rand_t</label>
+			<label kind="guard" x="425" y="348">r&lt;=8 || x&gt;=30</label>
+			<label kind="synchronisation" x="348" y="314">advise_pilot[id]!</label>
+			<nail x="493" y="331"/>
+		</transition>
+		<transition id="id25">
+			<source ref="id15"/>
+			<target ref="id16"/>
+			<label kind="synchronisation" x="-9" y="94">declare?</label>
+			<label kind="assignment" x="68" y="102">x=0, y=0</label>
+		</transition>
+	</template>
+	<template>
+		<name>Pilot</name>
+		<parameter>const id_t id</parameter>
+		<declaration>clock x;
+</declaration>
+		<location id="id26" x="-1079" y="-119">
+			<name x="-1089" y="-153">Idle</name>
+		</location>
+		<location id="id27" x="-799" y="-127">
+			<name x="-809" y="-161">Executing</name>
+			<label kind="invariant" x="-790" y="-110">x&lt;=5</label>
+		</location>
+		<init ref="id26"/>
+		<transition id="id28">
+			<source ref="id27"/>
+			<target ref="id26"/>
+			<label kind="synchronisation" x="-1011" y="-153">back_to_safe[id]!</label>
+		</transition>
+		<transition id="id29">
+			<source ref="id26"/>
+			<target ref="id27"/>
+			<label kind="synchronisation" x="-986" y="7">advise_pilot[id]?</label>
+			<label kind="assignment" x="-952" y="42">x=0</label>
+			<nail x="-943" y="0"/>
+		</transition>
+	</template>
+	<template>
+		<name>Channel</name>
+		<parameter>const id_t id</parameter>
+		<declaration>clock t;
+</declaration>
+		<location id="id30" x="-187" y="0">
+			<name x="-197" y="-34">Idle</name>
+		</location>
+		<location id="id31" x="212" y="0">
+			<name x="202" y="-34">Sending</name>
+			<label kind="invariant" x="202" y="17">t&lt;=5</label>
+		</location>
+		<init ref="id30"/>
+		<transition id="id32">
+			<source ref="id31"/>
+			<target ref="id30"/>
+			<label kind="guard" x="-93" y="144">signal_sent[1-id] == true</label>
+			<label kind="synchronisation" x="-68" y="119">receive_signal[id]!</label>
+			<nail x="8" y="119"/>
+		</transition>
+		<transition id="id33">
+			<source ref="id30"/>
+			<target ref="id31"/>
+			<label kind="synchronisation" x="-59" y="-178">send_signal[id]?</label>
+			<label kind="assignment" x="-127" y="-153">signal_sent[id] = true, t = 0</label>
+			<nail x="0" y="-127"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+
+// List one or more processes to be composed into a system.
+system Environment, Aircraft, Sensor_Detection, Resolution, Pilot, Channel;
+</system>
+	<queries>
+		<query>
+			<formula>======= Required Properties =======</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>Aircraft(0).Danger --&gt; Pilot(0).Executing</formula>
+			<comment>Whenever the system enters the dangerous state, the corresponding pilot will always implement the resolution advisory to resolve this.</comment>
+			<option key="--diagnostic" value="1"/>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:23:13 +0100">
+				<option key="--diagnostic" value="1"/>
+			</result>
+		</query>
+		<query>
+			<formula>Aircraft(1).Danger --&gt; Pilot(1).Executing</formula>
+			<comment>Whenever the system enters the dangerous state, the corresponding pilot will always implement the resolution advisory to resolve this.</comment>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:23:15 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] (Sensor_Detection.Detecting imply Sensor_Detection.t &lt;= 60)</formula>
+			<comment>The intruder (the neighboring aircraft enters RA zone) should be detected within 60 seconds.</comment>
+			<option key="--diagnostic" value="1"/>
+			<result outcome="success" type="quality" timestamp="2026-11-04 11:09:01 +0100">
+				<option key="--diagnostic" value="1"/>
+			</result>
+		</query>
+		<query>
+			<formula>Aircraft(0).Danger --&gt; (Aircraft(0).Safe &amp;&amp; Aircraft(0).t&lt;=210)</formula>
+			<comment>Any aircraft enters a dangerous zone will always return back to safe zone within 210 seconds.</comment>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:27:47 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>Aircraft(1).Danger --&gt; (Aircraft(1).Safe &amp;&amp; Aircraft(1).t&lt;=210)</formula>
+			<comment>Any aircraft enters a dangerous zone will always return back to safe zone within 210 seconds.</comment>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:28:26 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>Aircraft(0).Danger --&gt; Aircraft(1).Safe</formula>
+			<comment>Whenever one aircraft enters a dangerous zone, then the other aircraft will always go into the safe zone.</comment>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:28:49 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>Aircraft(1).Danger --&gt; Aircraft(0).Safe</formula>
+			<comment>Whenever one aircraft enters a dangerous zone, then the other aircraft will always go into the safe zone.</comment>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:29:04 +0100">
+			</result>
+		</query>
+		<query>
+			<formula>A[] not deadlock</formula>
+			<comment>This property plus Aircraft(0).Danger --&gt; Aircraft(0).Safe give the AGAF Aircraft(0).Safe, idem for Aircraft(1).Safe</comment>
+			<option key="--diagnostic" value="1"/>
+			<result outcome="success" type="quality" timestamp="2026-11-04 10:23:11 +0100">
+				<option key="--diagnostic" value="1"/>
+			</result>
+		</query>
+	</queries>
+</nta>
